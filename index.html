@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>五子棋 Gomoku</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-walnut: #1f1712;
+        --bg-charcoal: #0d0b0a;
+        --bg-amber: #2d2118;
+        --gold: #c9a96e;
+        --gold-soft: #e6cca0;
+        --cream: #f3ece0;
+        --ink: #17130f;
+        --panel: rgba(32, 25, 19, 0.68);
+        --panel-border: rgba(214, 178, 118, 0.26);
+        --wood-a: #cfaa74;
+        --wood-b: #b4874f;
+        --wood-c: #a2723f;
+        --line: rgba(82, 54, 28, 0.7);
+        --shadow-deep: rgba(13, 9, 6, 0.6);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body,
+      #root {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        font-family: "Inter", "Noto Serif SC", sans-serif;
+        color: var(--cream);
+        background:
+          radial-gradient(circle at 20% 14%, rgba(255, 206, 134, 0.08), transparent 40%),
+          radial-gradient(circle at 82% 88%, rgba(201, 169, 110, 0.07), transparent 45%),
+          linear-gradient(135deg, var(--bg-walnut), var(--bg-charcoal) 65%);
+        overflow: hidden;
+        user-select: none;
+        overscroll-behavior: none;
+      }
+
+      .app {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        padding: clamp(10px, 1.8vw, 22px);
+        isolation: isolate;
+        touch-action: manipulation;
+      }
+
+      .app::before,
+      .app::after {
+        content: "";
+        position: absolute;
+        pointer-events: none;
+      }
+
+      .app::before {
+        inset: 0;
+        background: radial-gradient(circle, transparent 50%, rgba(4, 3, 2, 0.5));
+        z-index: -1;
+      }
+
+      .app::after {
+        width: 160%;
+        height: 160%;
+        left: -30%;
+        top: -35%;
+        z-index: -2;
+        filter: blur(110px);
+        background:
+          radial-gradient(circle at 20% 25%, rgba(201, 169, 110, 0.17), transparent 45%),
+          radial-gradient(circle at 72% 60%, rgba(233, 195, 136, 0.08), transparent 40%),
+          radial-gradient(circle at 60% 15%, rgba(160, 106, 58, 0.12), transparent 38%);
+        animation: auraShift 18s ease-in-out infinite alternate;
+      }
+
+      .dust {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .mote {
+        position: absolute;
+        left: var(--left);
+        top: 110%;
+        width: var(--size);
+        height: var(--size);
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 240, 210, 0.9), rgba(255, 240, 210, 0));
+        opacity: 0;
+        filter: blur(0.1px);
+        animation: dustRise var(--dur) linear infinite;
+        animation-delay: var(--delay);
+      }
+
+      .shell {
+        width: 100%;
+        height: 100%;
+        border: 1px solid rgba(255, 224, 168, 0.08);
+        border-radius: clamp(18px, 2vw, 30px);
+        background:
+          linear-gradient(155deg, rgba(37, 28, 21, 0.78), rgba(18, 13, 10, 0.82)),
+          rgba(18, 13, 10, 0.78);
+        backdrop-filter: blur(12px) saturate(1.05);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 229, 173, 0.16),
+          0 18px 60px rgba(0, 0, 0, 0.55);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .start-screen {
+        height: 100%;
+        display: grid;
+        place-items: center;
+        padding: clamp(18px, 4vw, 46px);
+      }
+
+      .start-panel {
+        width: min(800px, 100%);
+        border-radius: 24px;
+        border: 1px solid var(--panel-border);
+        background:
+          linear-gradient(140deg, rgba(53, 40, 30, 0.52), rgba(21, 16, 12, 0.8)),
+          var(--panel);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 227, 173, 0.2),
+          0 22px 70px rgba(5, 3, 2, 0.55);
+        padding: clamp(24px, 5vw, 52px);
+        text-align: center;
+        animation: panelFade 700ms ease;
+      }
+
+      .title-cn {
+        margin: 0;
+        font-family: "Ma Shan Zheng", "Noto Serif SC", serif;
+        font-size: clamp(58px, 12vw, 130px);
+        line-height: 0.92;
+        color: #f8ecd5;
+        text-shadow:
+          0 2px 0 rgba(68, 40, 21, 0.45),
+          0 8px 30px rgba(201, 169, 110, 0.22);
+        letter-spacing: 0.03em;
+      }
+
+      .title-en {
+        margin: 8px 0 0;
+        font-family: "Cormorant Garamond", serif;
+        font-size: clamp(28px, 4vw, 46px);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--gold-soft);
+      }
+
+      .title-note {
+        margin: 8px auto 0;
+        max-width: 560px;
+        color: rgba(243, 236, 224, 0.78);
+        font-size: clamp(15px, 2vw, 19px);
+        line-height: 1.5;
+      }
+
+      .name-grid {
+        margin-top: clamp(24px, 5vw, 34px);
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .field {
+        text-align: left;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: var(--gold-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-weight: 600;
+      }
+
+      .field input {
+        width: 100%;
+        border: 1px solid rgba(226, 190, 130, 0.28);
+        border-radius: 12px;
+        padding: 11px 12px;
+        font-size: 16px;
+        font-family: "Inter", sans-serif;
+        color: var(--cream);
+        background: rgba(27, 20, 15, 0.74);
+        outline: none;
+        transition: border-color 220ms ease, box-shadow 220ms ease;
+      }
+
+      .field input:focus {
+        border-color: rgba(226, 190, 130, 0.66);
+        box-shadow: 0 0 0 3px rgba(226, 190, 130, 0.16);
+      }
+
+      .start-btn {
+        margin-top: clamp(20px, 4vw, 30px);
+        min-width: 220px;
+        border: 1px solid rgba(247, 222, 177, 0.62);
+        border-radius: 14px;
+        padding: 13px 28px;
+        font-size: clamp(16px, 2.2vw, 20px);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #3a250d;
+        font-weight: 700;
+        cursor: pointer;
+        touch-action: manipulation;
+        background: linear-gradient(150deg, #f9e9c8, #d8b071 42%, #c09251);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 248, 229, 0.82),
+          0 10px 24px rgba(14, 9, 5, 0.45),
+          0 0 0 0 rgba(238, 205, 147, 0.34);
+        transition: transform 170ms ease, box-shadow 220ms ease, filter 220ms ease;
+      }
+
+      .start-btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.04);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 248, 229, 0.92),
+          0 14px 28px rgba(14, 9, 5, 0.5),
+          0 0 0 7px rgba(238, 205, 147, 0.13);
+      }
+
+      .start-btn:active {
+        transform: scale(0.985);
+      }
+
+      .game-screen {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: clamp(10px, 1.8vw, 18px);
+      }
+
+      .top-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .brand-cn {
+        margin: 0;
+        font-family: "Ma Shan Zheng", "Noto Serif SC", serif;
+        font-size: clamp(30px, 4vw, 44px);
+        color: #f0dfc0;
+        line-height: 0.92;
+      }
+
+      .brand-en {
+        margin: 0;
+        font-family: "Cormorant Garamond", serif;
+        font-size: clamp(18px, 2vw, 24px);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(233, 209, 163, 0.86);
+      }
+
+      .stat-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .stat-pill {
+        border-radius: 999px;
+        border: 1px solid rgba(214, 178, 118, 0.35);
+        background: rgba(40, 30, 22, 0.72);
+        padding: 6px 12px;
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: rgba(248, 231, 204, 0.9);
+      }
+
+      .accent {
+        color: var(--gold);
+        font-weight: 700;
+      }
+
+      .play-layout {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 14px;
+      }
+
+      .board-zone {
+        min-height: 0;
+        display: grid;
+        place-items: center;
+      }
+
+      .board-frame {
+        --board-size: min(88vw, 74vh);
+        width: var(--board-size);
+        max-width: 980px;
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr) 26px;
+        grid-template-rows: 22px minmax(0, 1fr) 22px;
+        gap: 6px;
+      }
+
+      .coord-row {
+        grid-column: 2;
+        display: grid;
+        grid-template-columns: repeat(19, 1fr);
+        align-items: center;
+      }
+
+      .coord-row.bottom {
+        grid-row: 3;
+      }
+
+      .coord-col {
+        grid-row: 2;
+        display: grid;
+        grid-template-rows: repeat(19, 1fr);
+        justify-items: center;
+        align-items: center;
+      }
+
+      .coord-col.right {
+        grid-column: 3;
+      }
+
+      .coord {
+        font-family: "Cormorant Garamond", "Noto Serif SC", serif;
+        font-size: clamp(11px, 1.4vw, 14px);
+        color: rgba(243, 229, 203, 0.7);
+        text-shadow: 0 1px 0 rgba(66, 43, 24, 0.45);
+      }
+
+      .board-surface {
+        grid-column: 2;
+        grid-row: 2;
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 236, 199, 0.34),
+          inset 0 -2px 12px rgba(80, 46, 19, 0.38),
+          0 18px 40px rgba(9, 5, 2, 0.5);
+        background:
+          radial-gradient(circle at 20% 16%, rgba(255, 238, 210, 0.26), rgba(255, 238, 210, 0) 32%),
+          radial-gradient(circle at 80% 80%, rgba(117, 74, 35, 0.2), rgba(117, 74, 35, 0) 45%),
+          repeating-linear-gradient(
+            12deg,
+            rgba(126, 80, 40, 0.17) 0 2px,
+            rgba(198, 149, 90, 0.07) 2px 5px,
+            rgba(149, 98, 53, 0.13) 5px 8px
+          ),
+          repeating-linear-gradient(
+            98deg,
+            rgba(255, 219, 165, 0.06) 0 3px,
+            rgba(121, 82, 45, 0.08) 3px 7px,
+            rgba(168, 119, 70, 0.04) 7px 11px
+          ),
+          linear-gradient(145deg, var(--wood-a), var(--wood-b) 47%, var(--wood-c));
+        touch-action: manipulation;
+      }
+
+      .board-surface::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 28%);
+        mix-blend-mode: soft-light;
+      }
+
+      .grid-svg,
+      .win-svg,
+      .hit-layer,
+      .stone-layer {
+        position: absolute;
+        inset: 0;
+      }
+
+      .hit-layer {
+        z-index: 5;
+      }
+
+      .stone-layer {
+        z-index: 6;
+        pointer-events: none;
+      }
+
+      .grid-line {
+        stroke: var(--line);
+        stroke-width: 1.35;
+        shape-rendering: geometricPrecision;
+      }
+
+      .hoshi {
+        fill: rgba(70, 43, 21, 0.78);
+      }
+
+      .win-svg {
+        pointer-events: none;
+      }
+
+      .win-path {
+        stroke: rgba(252, 220, 161, 0.95);
+        stroke-width: 9;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 8px rgba(253, 216, 150, 0.72));
+        opacity: 0.95;
+        animation: lineGlow 1.4s ease-in-out infinite;
+      }
+
+      .intersection-hit {
+        position: absolute;
+        width: var(--hit-size);
+        height: var(--hit-size);
+        transform: translate(-50%, -50%);
+        border: 0;
+        background: transparent;
+        border-radius: 999px;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+
+      .intersection-hit:disabled {
+        cursor: default;
+      }
+
+      .stone {
+        position: absolute;
+        width: clamp(18px, calc(var(--cell-size) * 0.88), 44px);
+        height: clamp(18px, calc(var(--cell-size) * 0.88), 44px);
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        pointer-events: none;
+        box-shadow: 0 3px 7px rgba(10, 7, 4, 0.35), 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+        animation: stoneDrop 380ms cubic-bezier(0.2, 0.9, 0.23, 1.2);
+      }
+
+      .stone::before {
+        content: "";
+        position: absolute;
+        inset: -7px;
+        border-radius: 50%;
+        z-index: -1;
+        background: radial-gradient(circle, rgba(78, 57, 37, 0.35), rgba(78, 57, 37, 0));
+        opacity: 0;
+        animation: impactShadow 420ms ease;
+      }
+
+      .stone.black {
+        background: radial-gradient(circle at 32% 24%, #63686d 0%, #2a2f35 32%, #0f1114 66%, #050506 100%);
+      }
+
+      .stone.black::after,
+      .stone.white::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+      }
+
+      .stone.black::after {
+        width: 30%;
+        height: 30%;
+        top: 18%;
+        left: 20%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0));
+      }
+
+      .stone.white {
+        background: radial-gradient(circle at 34% 24%, #ffffff 0%, #f3f0ea 38%, #dad4c9 70%, #beb8ad 100%);
+        box-shadow: 0 3px 7px rgba(26, 20, 13, 0.35), 0 1px 0 rgba(255, 255, 255, 0.92) inset;
+      }
+
+      .stone.white::after {
+        width: 28%;
+        height: 28%;
+        top: 15%;
+        left: 22%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0));
+      }
+
+      .stone.winning {
+        box-shadow:
+          0 0 0 1px rgba(248, 221, 160, 0.66),
+          0 0 15px rgba(252, 221, 154, 0.72),
+          0 0 30px rgba(252, 221, 154, 0.42),
+          0 3px 7px rgba(10, 7, 4, 0.35);
+        animation: stoneDrop 380ms cubic-bezier(0.2, 0.9, 0.23, 1.2), winPulse 1.2s ease-in-out infinite;
+      }
+
+      .last-ring {
+        position: absolute;
+        width: 34%;
+        height: 34%;
+        top: 33%;
+        left: 33%;
+        border-radius: 50%;
+        border: 2px solid rgba(237, 202, 138, 0.95);
+        box-shadow: 0 0 10px rgba(237, 202, 138, 0.55);
+        animation: ringPulse 1.35s ease-in-out infinite;
+      }
+
+      .side-panel {
+        min-height: 0;
+        border-radius: 16px;
+        border: 1px solid var(--panel-border);
+        background:
+          linear-gradient(160deg, rgba(56, 42, 30, 0.48), rgba(19, 15, 11, 0.78)),
+          var(--panel);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 225, 170, 0.15),
+          0 10px 34px rgba(3, 2, 1, 0.48);
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow: auto;
+      }
+
+      .panel-title {
+        margin: 0;
+        font-family: "Cormorant Garamond", serif;
+        font-size: 24px;
+        color: #f5e5c7;
+        letter-spacing: 0.06em;
+      }
+
+      .turn-card {
+        border-radius: 14px;
+        border: 1px solid rgba(214, 178, 118, 0.28);
+        background: rgba(26, 20, 15, 0.72);
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .player-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 10px;
+        padding: 8px 10px;
+        background: rgba(255, 245, 224, 0.02);
+        transform: translateX(0);
+        transition: background 280ms ease, transform 280ms ease, border-color 280ms ease;
+        border: 1px solid transparent;
+      }
+
+      .player-row.active {
+        border-color: rgba(220, 183, 120, 0.45);
+        background: rgba(213, 172, 106, 0.12);
+        transform: translateX(2px);
+      }
+
+      .player-main {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .mini-stone {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        flex: 0 0 auto;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.36);
+      }
+
+      .mini-stone.black {
+        background: radial-gradient(circle at 35% 25%, #656a70 0%, #171a1f 50%, #090a0c 100%);
+      }
+
+      .mini-stone.white {
+        background: radial-gradient(circle at 35% 24%, #ffffff 0%, #ede7dd 50%, #c9c2b6 100%);
+      }
+
+      .player-name {
+        font-size: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .active .mini-stone {
+        animation: breath 1.45s ease-in-out infinite;
+      }
+
+      .wins {
+        color: var(--gold);
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .meta-card {
+        border-radius: 14px;
+        border: 1px solid rgba(214, 178, 118, 0.24);
+        background: rgba(26, 20, 15, 0.65);
+        padding: 10px 12px;
+      }
+
+      .meta-label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: rgba(236, 217, 183, 0.72);
+      }
+
+      .meta-value {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 27px;
+        color: #f7ead2;
+        line-height: 1;
+      }
+
+      .actions {
+        display: grid;
+        gap: 8px;
+      }
+
+      .btn {
+        border: 1px solid rgba(221, 187, 126, 0.38);
+        border-radius: 12px;
+        padding: 11px 12px;
+        font-size: 14px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #f0dfbe;
+        background:
+          linear-gradient(145deg, rgba(95, 71, 48, 0.55), rgba(35, 25, 18, 0.88)),
+          rgba(35, 25, 18, 0.9);
+        cursor: pointer;
+        transition: transform 170ms ease, filter 190ms ease, box-shadow 210ms ease;
+        touch-action: manipulation;
+      }
+
+      .btn:hover {
+        filter: brightness(1.06);
+        box-shadow: 0 0 0 4px rgba(201, 169, 110, 0.14);
+      }
+
+      .btn:active {
+        transform: scale(0.98);
+      }
+
+      .btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        box-shadow: none;
+        filter: none;
+      }
+
+      .btn.secondary {
+        border-color: rgba(230, 205, 162, 0.45);
+        background: linear-gradient(145deg, rgba(225, 193, 139, 0.32), rgba(105, 76, 48, 0.72));
+      }
+
+      .btn.ghost {
+        background: rgba(31, 22, 16, 0.78);
+      }
+
+      .win-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(10, 7, 5, 0.58);
+        backdrop-filter: blur(8px);
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        z-index: 30;
+        animation: fadeIn 260ms ease;
+      }
+
+      .win-card {
+        position: relative;
+        width: min(560px, 100%);
+        border-radius: 20px;
+        border: 1px solid rgba(227, 197, 145, 0.42);
+        background:
+          linear-gradient(160deg, rgba(70, 53, 39, 0.42), rgba(27, 21, 15, 0.86)),
+          rgba(29, 22, 15, 0.85);
+        padding: clamp(22px, 3.5vw, 34px);
+        text-align: center;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 230, 180, 0.22),
+          0 20px 60px rgba(5, 3, 2, 0.64);
+        overflow: hidden;
+      }
+
+      .win-card h2 {
+        margin: 0;
+        font-family: "Cormorant Garamond", serif;
+        font-size: clamp(34px, 7vw, 58px);
+        letter-spacing: 0.06em;
+        color: #f7e8cf;
+      }
+
+      .win-card p {
+        margin: 4px 0 0;
+        color: rgba(245, 230, 202, 0.82);
+        font-size: 17px;
+      }
+
+      .winner-stone {
+        margin: 18px auto 14px;
+        width: 86px;
+        height: 86px;
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 1px rgba(248, 217, 159, 0.55),
+          0 0 26px rgba(248, 217, 159, 0.52),
+          0 0 42px rgba(248, 217, 159, 0.24),
+          0 10px 24px rgba(8, 5, 3, 0.46);
+        animation: winnerFloat 1.7s ease-in-out infinite;
+      }
+
+      .winner-stone.black {
+        background: radial-gradient(circle at 33% 24%, #767a7f 0%, #1a1e23 52%, #060709 100%);
+      }
+
+      .winner-stone.white {
+        background: radial-gradient(circle at 33% 24%, #ffffff 0%, #f1ece4 55%, #c7c0b4 100%);
+      }
+
+      .overlay-actions {
+        margin-top: 18px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .petal-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .petal {
+        position: absolute;
+        left: var(--left);
+        top: -10%;
+        width: var(--size);
+        height: calc(var(--size) * 0.7);
+        border-radius: 60% 40% 60% 40%;
+        background: linear-gradient(135deg, rgba(255, 218, 207, 0.92), rgba(247, 176, 159, 0.88));
+        box-shadow: 0 0 8px rgba(255, 195, 176, 0.42);
+        opacity: 0;
+        transform: rotate(0deg);
+        animation: petalFall var(--dur) linear infinite;
+        animation-delay: var(--delay);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      @keyframes auraShift {
+        0% {
+          transform: translate(0, 0) scale(1);
+        }
+        100% {
+          transform: translate(5%, 4%) scale(1.08);
+        }
+      }
+
+      @keyframes dustRise {
+        0% {
+          transform: translate3d(0, 0, 0);
+          opacity: 0;
+        }
+        10% {
+          opacity: 0.45;
+        }
+        100% {
+          transform: translate3d(0, -125vh, 0);
+          opacity: 0;
+        }
+      }
+
+      @keyframes panelFade {
+        from {
+          opacity: 0;
+          transform: translateY(12px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes stoneDrop {
+        0% {
+          transform: translate(-50%, -65%) scale(0.5);
+          opacity: 0;
+        }
+        70% {
+          transform: translate(-50%, -47%) scale(1.06);
+          opacity: 1;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 1;
+        }
+      }
+
+      @keyframes impactShadow {
+        0% {
+          transform: scale(0.5);
+          opacity: 0.55;
+        }
+        100% {
+          transform: scale(1.35);
+          opacity: 0;
+        }
+      }
+
+      @keyframes ringPulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.95;
+        }
+        50% {
+          transform: scale(1.24);
+          opacity: 0.45;
+        }
+      }
+
+      @keyframes breath {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.08);
+        }
+      }
+
+      @keyframes winPulse {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.08);
+        }
+      }
+
+      @keyframes lineGlow {
+        0%,
+        100% {
+          opacity: 0.95;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes winnerFloat {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+
+      @keyframes petalFall {
+        0% {
+          transform: translate3d(0, -20px, 0) rotate(0deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 0.85;
+        }
+        100% {
+          transform: translate3d(0, 120vh, 0) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      @media (max-width: 1200px) {
+        .play-layout {
+          grid-template-columns: 1fr 280px;
+        }
+
+        .board-frame {
+          --board-size: min(90vw, 70vh);
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .play-layout {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+
+        .side-panel {
+          order: -1;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          align-items: start;
+          gap: 10px;
+        }
+
+        .side-panel > :first-child {
+          grid-column: 1 / -1;
+        }
+
+        .actions {
+          grid-column: 1 / -1;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .board-frame {
+          --board-size: min(94vw, 66vh);
+        }
+      }
+
+      @media (max-width: 760px) {
+        .top-bar {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 8px;
+        }
+
+        .stat-row {
+          justify-content: flex-start;
+        }
+
+        .name-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .side-panel {
+          display: flex;
+        }
+
+        .actions {
+          grid-template-columns: 1fr;
+        }
+
+        .board-frame {
+          --board-size: min(96vw, 60vh);
+          grid-template-columns: 20px minmax(0, 1fr) 20px;
+          grid-template-rows: 18px minmax(0, 1fr) 18px;
+          gap: 4px;
+        }
+      }
+
+      @media (orientation: portrait) {
+        .board-frame {
+          --board-size: min(96vw, 64vh);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel">
+      const { useCallback, useEffect, useMemo, useRef, useState } = React;
+
+      const BOARD_SIZE = 19;
+      const WIN_LENGTH = 5;
+      const COLUMNS = Array.from({ length: BOARD_SIZE }, (_, i) => String.fromCharCode(65 + i));
+      const ROWS = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
+      const DIRECTIONS = [
+        [0, 1],
+        [1, 0],
+        [1, 1],
+        [1, -1],
+      ];
+      const HOSHI_INDEXES = [3, 9, 15];
+      const GRID_COORDS = Array.from({ length: BOARD_SIZE }, (_, i) => (i / (BOARD_SIZE - 1)) * 100);
+
+      const INTERSECTIONS = Array.from({ length: BOARD_SIZE * BOARD_SIZE }, (_, index) => {
+        const row = Math.floor(index / BOARD_SIZE);
+        const col = index % BOARD_SIZE;
+        return {
+          row,
+          col,
+          key: `${row}-${col}`,
+          xPct: (col / (BOARD_SIZE - 1)) * 100,
+          yPct: (row / (BOARD_SIZE - 1)) * 100,
+        };
+      });
+
+      const DUST_MOTES = Array.from({ length: 20 }, (_, i) => ({
+        left: `${(i * 37) % 100}%`,
+        size: `${2 + (i % 4)}px`,
+        dur: `${13 + (i % 8)}s`,
+        delay: `${-((i % 8) * 1.4)}s`,
+      }));
+
+      const PETALS = Array.from({ length: 24 }, (_, i) => ({
+        left: `${(i * 19) % 100}%`,
+        size: `${8 + (i % 6)}px`,
+        dur: `${6 + (i % 6) * 0.45}s`,
+        delay: `${(i % 12) * 0.2}s`,
+      }));
+
+      const createEmptyBoard = () =>
+        Array.from({ length: BOARD_SIZE }, () => Array.from({ length: BOARD_SIZE }, () => null));
+
+      const isInside = (row, col) => row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+
+      const positionKey = (row, col) => `${row}-${col}`;
+
+      function findWinningSegment(board, row, col, player) {
+        for (const [dr, dc] of DIRECTIONS) {
+          const negative = [];
+          const positive = [];
+
+          let r = row - dr;
+          let c = col - dc;
+          while (isInside(r, c) && board[r][c] === player) {
+            negative.unshift({ row: r, col: c });
+            r -= dr;
+            c -= dc;
+          }
+
+          r = row + dr;
+          c = col + dc;
+          while (isInside(r, c) && board[r][c] === player) {
+            positive.push({ row: r, col: c });
+            r += dr;
+            c += dc;
+          }
+
+          const full = [...negative, { row, col }, ...positive];
+          if (full.length >= WIN_LENGTH) {
+            const moveIndex = negative.length;
+            const start = Math.max(0, Math.min(moveIndex, full.length - WIN_LENGTH));
+            return full.slice(start, start + WIN_LENGTH);
+          }
+        }
+
+        return null;
+      }
+
+      function updateBoardCell(board, row, col, value) {
+        return board.map((r, idx) => {
+          if (idx !== row) return r;
+          const nextRow = [...r];
+          nextRow[col] = value;
+          return nextRow;
+        });
+      }
+
+      function App() {
+        const boardRef = useRef(null);
+        const audioRef = useRef({
+          ctx: null,
+          noiseBuffer: null,
+        });
+
+        const [screen, setScreen] = useState("start");
+        const [playerInputs, setPlayerInputs] = useState({
+          black: "Player 1",
+          white: "Player 2",
+        });
+        const [players, setPlayers] = useState({
+          black: "Player 1",
+          white: "Player 2",
+        });
+
+        const [board, setBoard] = useState(() => createEmptyBoard());
+        const [moves, setMoves] = useState([]);
+        const [currentPlayer, setCurrentPlayer] = useState("black");
+        const [winner, setWinner] = useState(null);
+        const [winningLine, setWinningLine] = useState([]);
+        const [scores, setScores] = useState({ black: 0, white: 0 });
+        const [boardPixels, setBoardPixels] = useState(700);
+        const [soundEnabled, setSoundEnabled] = useState(true);
+
+        useEffect(() => {
+          if (!boardRef.current || typeof ResizeObserver === "undefined") {
+            return;
+          }
+
+          const node = boardRef.current;
+          const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (!entry) return;
+            setBoardPixels(entry.contentRect.width);
+          });
+
+          observer.observe(node);
+          setBoardPixels(node.getBoundingClientRect().width);
+
+          return () => observer.disconnect();
+        }, []);
+
+        const cellSize = boardPixels / (BOARD_SIZE - 1);
+        const hitSize = Math.max(30, cellSize * 1.15);
+
+        const lastMove = moves[moves.length - 1] || null;
+
+        const winningSet = useMemo(
+          () => new Set(winningLine.map((point) => positionKey(point.row, point.col))),
+          [winningLine]
+        );
+
+        const winnerName = winner ? players[winner] : "";
+        const turnName = players[currentPlayer];
+
+        const ensureAudio = useCallback(async () => {
+          if (!soundEnabled) return null;
+
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return null;
+
+          if (!audioRef.current.ctx) {
+            audioRef.current.ctx = new AudioCtx();
+          }
+
+          const ctx = audioRef.current.ctx;
+          if (ctx.state === "suspended") {
+            try {
+              await ctx.resume();
+            } catch (error) {
+              return null;
+            }
+          }
+
+          if (!audioRef.current.noiseBuffer) {
+            const duration = 0.1;
+            const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i += 1) {
+              data[i] = (Math.random() * 2 - 1) * 0.34;
+            }
+            audioRef.current.noiseBuffer = buffer;
+          }
+
+          return ctx;
+        }, [soundEnabled]);
+
+        const playPlaceSound = useCallback(async () => {
+          const ctx = await ensureAudio();
+          if (!ctx || !audioRef.current.noiseBuffer) return;
+
+          const now = ctx.currentTime;
+
+          const noise = ctx.createBufferSource();
+          noise.buffer = audioRef.current.noiseBuffer;
+          const lowpass = ctx.createBiquadFilter();
+          lowpass.type = "lowpass";
+          lowpass.frequency.setValueAtTime(1450, now);
+
+          const noiseGain = ctx.createGain();
+          noiseGain.gain.setValueAtTime(0.001, now);
+          noiseGain.gain.exponentialRampToValueAtTime(0.13, now + 0.01);
+          noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+          noise.connect(lowpass);
+          lowpass.connect(noiseGain);
+          noiseGain.connect(ctx.destination);
+          noise.start(now);
+          noise.stop(now + 0.09);
+
+          const osc = ctx.createOscillator();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(245, now);
+          osc.frequency.exponentialRampToValueAtTime(182, now + 0.09);
+          const oscGain = ctx.createGain();
+          oscGain.gain.setValueAtTime(0.0001, now);
+          oscGain.gain.exponentialRampToValueAtTime(0.04, now + 0.01);
+          oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+
+          osc.connect(oscGain);
+          oscGain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.11);
+        }, [ensureAudio]);
+
+        const playUndoSound = useCallback(async () => {
+          const ctx = await ensureAudio();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          const osc = ctx.createOscillator();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.exponentialRampToValueAtTime(180, now + 0.16);
+
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.045, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.17);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        }, [ensureAudio]);
+
+        const playWinSound = useCallback(async () => {
+          const ctx = await ensureAudio();
+          if (!ctx) return;
+
+          const start = ctx.currentTime + 0.02;
+          const notes = [523.25, 659.25, 783.99, 987.77];
+
+          notes.forEach((freq, idx) => {
+            const at = start + idx * 0.13;
+            const osc = ctx.createOscillator();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, at);
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.0001, at);
+            gain.gain.exponentialRampToValueAtTime(0.05, at + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.28);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(at);
+            osc.stop(at + 0.3);
+          });
+        }, [ensureAudio]);
+
+        const resetBoard = useCallback(() => {
+          setBoard(createEmptyBoard());
+          setMoves([]);
+          setCurrentPlayer("black");
+          setWinner(null);
+          setWinningLine([]);
+        }, []);
+
+        const handleStartGame = useCallback(() => {
+          const nextPlayers = {
+            black: (playerInputs.black || "Player 1").trim() || "Player 1",
+            white: (playerInputs.white || "Player 2").trim() || "Player 2",
+          };
+          setPlayers(nextPlayers);
+          resetBoard();
+          setScreen("playing");
+        }, [playerInputs.black, playerInputs.white, resetBoard]);
+
+        const handleTapIntersection = useCallback(
+          (row, col) => {
+            if (winner) return;
+            if (board[row][col]) return;
+
+            const placedMove = { row, col, player: currentPlayer };
+            const nextBoard = updateBoardCell(board, row, col, currentPlayer);
+            const nextMoves = [...moves, placedMove];
+            const resultLine = findWinningSegment(nextBoard, row, col, currentPlayer);
+
+            setBoard(nextBoard);
+            setMoves(nextMoves);
+            playPlaceSound();
+
+            if (resultLine) {
+              setWinner(currentPlayer);
+              setWinningLine(resultLine);
+              setScores((prev) => ({
+                ...prev,
+                [currentPlayer]: prev[currentPlayer] + 1,
+              }));
+              playWinSound();
+              return;
+            }
+
+            setCurrentPlayer((prev) => (prev === "black" ? "white" : "black"));
+          },
+          [board, currentPlayer, moves, playPlaceSound, playWinSound, winner]
+        );
+
+        const handleUndo = useCallback(() => {
+          if (moves.length === 0) return;
+
+          const removed = moves[moves.length - 1];
+          const nextMoves = moves.slice(0, -1);
+          const nextBoard = updateBoardCell(board, removed.row, removed.col, null);
+
+          if (winner) {
+            setScores((prev) => ({
+              ...prev,
+              [winner]: Math.max(0, prev[winner] - 1),
+            }));
+          }
+
+          setBoard(nextBoard);
+          setMoves(nextMoves);
+          setWinner(null);
+          setWinningLine([]);
+          setCurrentPlayer(removed.player);
+          playUndoSound();
+        }, [board, moves, playUndoSound, winner]);
+
+        const handleNewRound = useCallback(() => {
+          resetBoard();
+        }, [resetBoard]);
+
+        const handleResetScore = useCallback(() => {
+          resetBoard();
+          setScores({ black: 0, white: 0 });
+        }, [resetBoard]);
+
+        const winningLineCoords = useMemo(() => {
+          if (winningLine.length !== WIN_LENGTH) return null;
+          const first = winningLine[0];
+          const last = winningLine[winningLine.length - 1];
+          return {
+            x1: (first.col / (BOARD_SIZE - 1)) * 100,
+            y1: (first.row / (BOARD_SIZE - 1)) * 100,
+            x2: (last.col / (BOARD_SIZE - 1)) * 100,
+            y2: (last.row / (BOARD_SIZE - 1)) * 100,
+          };
+        }, [winningLine]);
+
+        return (
+          <div className="app">
+            <div className="dust" aria-hidden="true">
+              {DUST_MOTES.map((mote, index) => (
+                <span
+                  key={index}
+                  className="mote"
+                  style={{
+                    "--left": mote.left,
+                    "--size": mote.size,
+                    "--dur": mote.dur,
+                    "--delay": mote.delay,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="shell">
+              {screen === "start" ? (
+                <section className="start-screen">
+                  <div className="start-panel">
+                    <h1 className="title-cn">五子棋</h1>
+                    <p className="title-en">Gomoku</p>
+                    <p className="title-note">
+                      Place stones on intersections. First to connect five in any direction wins.
+                    </p>
+
+                    <div className="name-grid">
+                      <div className="field">
+                        <label htmlFor="player-black">Player 1 (Black)</label>
+                        <input
+                          id="player-black"
+                          value={playerInputs.black}
+                          onChange={(event) =>
+                            setPlayerInputs((prev) => ({ ...prev, black: event.target.value }))
+                          }
+                          maxLength={20}
+                        />
+                      </div>
+
+                      <div className="field">
+                        <label htmlFor="player-white">Player 2 (White)</label>
+                        <input
+                          id="player-white"
+                          value={playerInputs.white}
+                          onChange={(event) =>
+                            setPlayerInputs((prev) => ({ ...prev, white: event.target.value }))
+                          }
+                          maxLength={20}
+                        />
+                      </div>
+                    </div>
+
+                    <button className="start-btn" onClick={handleStartGame}>
+                      Start Game
+                    </button>
+                  </div>
+                </section>
+              ) : (
+                <section className="game-screen" aria-label="Gomoku game board">
+                  <header className="top-bar">
+                    <div className="brand">
+                      <p className="brand-cn">五子棋</p>
+                      <p className="brand-en">Gomoku</p>
+                    </div>
+                    <div className="stat-row">
+                      <span className="stat-pill">
+                        Moves: <span className="accent">{moves.length}</span>
+                      </span>
+                      <span className="stat-pill">
+                        Sound: <span className="accent">{soundEnabled ? "On" : "Off"}</span>
+                      </span>
+                    </div>
+                  </header>
+
+                  <div className="play-layout">
+                    <div className="board-zone">
+                      <div className="board-frame">
+                        <div className="coord-row top">
+                          {COLUMNS.map((label) => (
+                            <span className="coord" key={`top-${label}`}>
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="coord-col left">
+                          {ROWS.map((label) => (
+                            <span className="coord" key={`left-${label}`}>
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="board-surface"
+                          ref={boardRef}
+                          style={{
+                            "--cell-size": `${cellSize}px`,
+                            "--hit-size": `${hitSize}px`,
+                          }}
+                        >
+                          <svg className="grid-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+                            {GRID_COORDS.map((coord, index) => {
+                              const point = (coord / 100) * 1000;
+                              return (
+                                <g key={`line-${index}`}>
+                                  <line className="grid-line" x1={0} y1={point} x2={1000} y2={point} />
+                                  <line className="grid-line" x1={point} y1={0} x2={point} y2={1000} />
+                                </g>
+                              );
+                            })}
+
+                            {HOSHI_INDEXES.flatMap((r) =>
+                              HOSHI_INDEXES.map((c) => {
+                                const x = (c / (BOARD_SIZE - 1)) * 1000;
+                                const y = (r / (BOARD_SIZE - 1)) * 1000;
+                                return <circle key={`hoshi-${r}-${c}`} className="hoshi" cx={x} cy={y} r="7" />;
+                              })
+                            )}
+                          </svg>
+
+                          <svg className="win-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                            {winningLineCoords && (
+                              <line
+                                className="win-path"
+                                x1={winningLineCoords.x1}
+                                y1={winningLineCoords.y1}
+                                x2={winningLineCoords.x2}
+                                y2={winningLineCoords.y2}
+                              />
+                            )}
+                          </svg>
+
+                          <div className="hit-layer">
+                            {INTERSECTIONS.map((point) => (
+                              <button
+                                key={point.key}
+                                className="intersection-hit"
+                                style={{ left: `${point.xPct}%`, top: `${point.yPct}%` }}
+                                onClick={() => handleTapIntersection(point.row, point.col)}
+                                disabled={Boolean(board[point.row][point.col]) || Boolean(winner)}
+                                aria-label={`Row ${point.row + 1}, Column ${COLUMNS[point.col]}`}
+                              />
+                            ))}
+                          </div>
+
+                          <div className="stone-layer" aria-hidden="true">
+                            {moves.map((move) => {
+                              const key = positionKey(move.row, move.col);
+                              const isWinningStone = winningSet.has(key);
+                              const isLast = lastMove && lastMove.row === move.row && lastMove.col === move.col;
+
+                              return (
+                                <span
+                                  key={key}
+                                  className={`stone ${move.player} ${isWinningStone ? "winning" : ""}`}
+                                  style={{
+                                    left: `${(move.col / (BOARD_SIZE - 1)) * 100}%`,
+                                    top: `${(move.row / (BOARD_SIZE - 1)) * 100}%`,
+                                  }}
+                                >
+                                  {isLast && !winner && <span className="last-ring" />}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="coord-col right">
+                          {ROWS.map((label) => (
+                            <span className="coord" key={`right-${label}`}>
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="coord-row bottom">
+                          {COLUMNS.map((label) => (
+                            <span className="coord" key={`bottom-${label}`}>
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <aside className="side-panel">
+                      <h2 className="panel-title">Match Status</h2>
+
+                      <div className="turn-card" aria-live="polite">
+                        <div className={`player-row ${!winner && currentPlayer === "black" ? "active" : ""}`}>
+                          <div className="player-main">
+                            <span className="mini-stone black" />
+                            <span className="player-name">{players.black}</span>
+                          </div>
+                          <span className="wins">{scores.black} Wins</span>
+                        </div>
+
+                        <div className={`player-row ${!winner && currentPlayer === "white" ? "active" : ""}`}>
+                          <div className="player-main">
+                            <span className="mini-stone white" />
+                            <span className="player-name">{players.white}</span>
+                          </div>
+                          <span className="wins">{scores.white} Wins</span>
+                        </div>
+                      </div>
+
+                      <div className="meta-card">
+                        <span className="meta-label">Current Turn</span>
+                        <div className="meta-value">{winner ? "Game Over" : turnName}</div>
+                      </div>
+
+                      <div className="actions">
+                        <button className="btn" onClick={handleUndo} disabled={moves.length === 0 || Boolean(winner)}>
+                          ↶ Undo Move
+                        </button>
+                        <button className="btn secondary" onClick={handleNewRound}>
+                          ↺ New Game
+                        </button>
+                        <button
+                          className="btn ghost"
+                          onClick={() => setSoundEnabled((prev) => !prev)}
+                        >
+                          {soundEnabled ? "🔈 Mute" : "🔊 Sound"}
+                        </button>
+                      </div>
+                    </aside>
+                  </div>
+                </section>
+              )}
+
+              {winner && (
+                <div className="win-overlay" role="dialog" aria-modal="true" aria-label="Winner announcement">
+                  <div className="win-card">
+                    <div className="petal-layer" aria-hidden="true">
+                      {PETALS.map((petal, index) => (
+                        <span
+                          key={index}
+                          className="petal"
+                          style={{
+                            "--left": petal.left,
+                            "--size": petal.size,
+                            "--dur": petal.dur,
+                            "--delay": petal.delay,
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    <h2>{winnerName} Wins</h2>
+                    <p>Five in a row completed.</p>
+                    <div className={`winner-stone ${winner}`} aria-hidden="true" />
+
+                    <div className="overlay-actions">
+                      <button className="btn secondary" onClick={handleNewRound}>
+                        Play Again
+                      </button>
+                      <button className="btn" onClick={handleResetScore}>
+                        New Game (Reset Score)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <span className="sr-only" aria-live="polite">
+              {screen === "playing" && !winner ? `${turnName}'s turn` : ""}
+            </span>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
