@@ -1,5 +1,7 @@
 # Gomoku (五子棋) - Single File Web App
 
+**▶ [Play now](https://renrenmimi.github.io/Gomoku/)** — runs in your browser, nothing to install.
+
 A premium-style local two-player Gomoku game built as a single `index.html` file for direct deployment to GitHub Pages.
 
 ## Features
