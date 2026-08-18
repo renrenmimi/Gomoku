@@ -2,7 +2,7 @@
 
 **▶ [Play now](https://renrenmimi.github.io/Gomoku/)** — runs in your browser, nothing to install.
 
-A premium-style local two-player Gomoku game built as a single `index.html` file for direct deployment to GitHub Pages.
+A local two-player Gomoku game built as a single `index.html` file for direct deployment to GitHub Pages.
 
 ![The 19x19 board, mid-match](docs/screenshot.jpg)
 
