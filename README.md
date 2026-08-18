@@ -4,6 +4,8 @@
 
 A premium-style local two-player Gomoku game built as a single `index.html` file for direct deployment to GitHub Pages.
 
+![The 19x19 board, mid-match](docs/screenshot.jpg)
+
 ## Features
 
 - 19x19 board with traditional intersection placement
