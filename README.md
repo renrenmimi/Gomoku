@@ -15,7 +15,7 @@ A local two-player Gomoku game built as a single `index.html` file for direct de
 - Undo last move, new game reset, and match score tracking
 - Start screen with optional player names
 - iPad-friendly touch targets and interaction settings
-- Optional gentle Web Audio effects (place / undo / win)
+- Optional Web Audio effects (place / undo / win)
 
 ## Tech
 
