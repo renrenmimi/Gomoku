@@ -21,8 +21,7 @@ A local two-player Gomoku game built as a single `index.html` file for direct de
 
 - React 18 via CDN
 - Babel standalone (JSX in browser)
-- Inline CSS + JS, no build tools
-- No external images
+- Inline CSS and JS
 
 ## Deploy
 
