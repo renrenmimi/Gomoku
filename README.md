@@ -1,4 +1,4 @@
-# Gomoku (五子棋)
+# Gomoku
 
 **▶ [Play now](https://renrenmimi.github.io/Gomoku/)** — runs in your browser, nothing to install.
 
